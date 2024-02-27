@@ -1,0 +1,75 @@
+grammar;
+
+use crate::ast;
+
+Comma<T>: Vec<T> = {
+    => Vec::new(),
+    CommaOne<T> => <>,
+};
+
+CommaOne<T>: ast::OneMore<T> = {
+    <e:T> <v:("," <T>)*> => ast::OneMore{
+        first: e,
+        other: v,
+    }
+};
+
+pub BoogieProgram: ast::BoogieProgram = {
+    <declares: Declare*> => ast::BoogieProgram{
+        declares: declares
+    }
+}
+
+pub Declare: ast::Declare = {
+    <AxiomDecl> => ast::Declare::AxiomDecl(<>),
+    <VarDecl> => ast::Declare::VarDecl(<>)
+}
+
+pub AxiomDecl: ast::AxiomDecl = {
+    "axiom" => ast::AxiomDecl{}
+}
+
+pub VarDecl: ast::VarDecl = {
+    "var" <typed_idents_wheres: CommaOne<TypedIdentsWhere>> ";" => ast::VarDecl{
+        attrs: vec![],
+        typed_idents_wheres
+    }
+}
+
+pub TypedIdentsWhere: ast::TypedIdentsWhere = {
+    <typed_idents: TypedIdents> "where" <expr: Expr> => ast::TypedIdentsWhere{
+        typed_idents,
+        expr: Some(expr),
+    },
+    <typed_idents: TypedIdents> => ast::TypedIdentsWhere{
+        typed_idents,
+        expr: None,
+    }
+}
+
+pub TypedIdents: ast::TypedIdents = {
+    <idents: CommaOne<Ident>> ":" "int" => ast::TypedIdents{
+        idents,
+        r#type: "int".to_string()
+    }
+}
+
+pub Ident: ast::Ident = {
+    <non_digit: NonDigit> <non_digit_or_digits: NonDigitOrDigit*> => ast::Ident{
+        escape: false,
+        non_digit: non_digit,
+        non_digit_or_digit: non_digit_or_digits
+    }
+}
+
+pub Expr: ast::Expr = {
+
+}
+
+pub NonDigitOrDigit: ast::NonDigitOrDigit = {
+    <non_digit: NonDigit> => ast::NonDigitOrDigit::NonDigit(<>),
+    <digit: Digit> => ast::NonDigitOrDigit::Digit(<>)
+}
+
+pub NonDigit : String =  <s:r"[A-Za-z'~#$^_.?`]"> => String::from(s);
+pub Digit : String =  <s:r"[0-9]"> => String::from(s);
